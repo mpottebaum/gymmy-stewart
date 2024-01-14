@@ -9,8 +9,8 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <main className='flex flex-col'>
-      <p className=''>calendar</p>
-    </main> 
+    <main className="flex flex-col">
+      <p>calendar</p>
+    </main>
   );
 }
