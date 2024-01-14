@@ -21,7 +21,10 @@ module.exports = {
   },
 
   // Base config
-  extends: ["eslint:recommended"],
+  extends: [
+    "eslint:recommended",
+    "plugin:tailwindcss/recommended",
+  ],
 
   overrides: [
     // React
