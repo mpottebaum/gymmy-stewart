@@ -17,13 +17,20 @@ const CYCLE_LENGTH = 9;
 
 type GymDayType = "arms" | "legs" | undefined;
 
-interface GymDay {
+interface Workout {
+  id: string;
+  utcDate: string;
+  title: string;
+  notes: string;
+}
+
+interface FutureGymDay {
   id: string;
   type: GymDayType;
   date: number;
 }
 
-type GymDays = Record<GymDay["date"], GymDay>;
+type FutureGymDays = Record<FutureGymDay["date"], FutureGymDay>;
 
 function isInCycle(startCycleDate: Date, date: Date) {
   const startNextCycleDate = new Date(
@@ -34,7 +41,7 @@ function isInCycle(startCycleDate: Date, date: Date) {
   return date > startCycleDate && date < startNextCycleDate;
 }
 
-const gymDayTypes: GymDayType[] = [
+const futureGymDayTypes: GymDayType[] = [
   "arms",
   undefined,
   "legs",
@@ -46,7 +53,7 @@ const gymDayTypes: GymDayType[] = [
   undefined,
 ];
 
-function buildGymDays(startDate: Date, today: Date) {
+function buildFutureGymDays(startDate: Date, today: Date) {
   let startCycleDate = startDate;
   while (!isInCycle(startCycleDate, today)) {
     startCycleDate = new Date(
@@ -63,12 +70,12 @@ function buildGymDays(startDate: Date, today: Date) {
     0,
   );
   let currentDate = startGymDays;
-  const gymDays: GymDays = {};
+  const gymDays: FutureGymDays = {};
   let cycleDate = 0;
   while (currentDate <= lastDateInMonth) {
     const gymDay = {
       id: uuid(),
-      type: gymDayTypes[cycleDate],
+      type: futureGymDayTypes[cycleDate],
       date: currentDate.getDate(),
     };
     gymDays[gymDay.date] = gymDay;
@@ -86,13 +93,13 @@ function buildGymDays(startDate: Date, today: Date) {
 export function loader(args: LoaderFunctionArgs) {
   const startDate = new Date().toUTCString();
   const startDateConstructo = new Date(startDate);
-  const gymDays = buildGymDays(startDateConstructo, new Date());
+  const futureGymDays = buildFutureGymDays(startDateConstructo, new Date());
   return json({
     user: {
       name: "Mike",
       startDate,
     },
-    gymDays,
+    futureGymDays,
   });
 }
 
@@ -143,11 +150,38 @@ function buildDates(today: Date): CalendarDate[] {
   return [...daysPad, ...days];
 }
 
+type DateButtonProps = {
+  date: number;
+} & React.DetailedHTMLProps<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  HTMLButtonElement
+>;
+
+function DateButton({ date, ...buttonProps }: DateButtonProps) {
+  return (
+    <div className="flex items-center">
+      <button {...buttonProps} className="w-full p-2">
+        {date}
+      </button>
+    </div>
+  );
+}
+
 export default function Index() {
-  const { user, gymDays } = useLoaderData<typeof loader>();
+  const { user, futureGymDays } = useLoaderData<typeof loader>();
   const today = new Date();
   const month = today.getMonth();
   const dates = buildDates(today);
+
+  function onArmsClick() {
+    console.log("arms");
+  }
+  function onLegsClick() {
+    console.log("legs");
+  }
+  function onEmptyClick() {
+    console.log("empty");
+  }
   return (
     <main className="flex flex-col">
       <section>
@@ -161,15 +195,23 @@ export default function Index() {
             </h2>
           ))}
           {dates.map(({ date, id }) => {
-            const isGymDay = date && gymDays[date] && gymDays[date].type;
+            const futureGymDay = date && futureGymDays[date];
+            const isFutureGymDay = futureGymDay && futureGymDay.type;
             return (
-              <div key={id}>
-                {isGymDay && (
-                  <div className="bg-red-600">
-                    <button className="p-2">{date}</button>
+              <div key={id} className="w-full">
+                {isFutureGymDay && futureGymDay.type === "arms" && (
+                  <div className="w-full bg-red-600">
+                    <DateButton date={date} onClick={onArmsClick} />
                   </div>
                 )}
-                {!isGymDay && <p>{date}</p>}
+                {isFutureGymDay && futureGymDay.type === "legs" && (
+                  <div className="w-full bg-blue-600">
+                    <DateButton date={date} onClick={onLegsClick} />
+                  </div>
+                )}
+                {!isFutureGymDay && date && (
+                  <DateButton date={date} onClick={onEmptyClick} />
+                )}
               </div>
             );
           })}
