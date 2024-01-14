@@ -1,16 +1,5 @@
-import type { MetaFunction } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
-
-export default function Index() {
-  return (
-    <main className="flex flex-col">
-      <p>calendar</p>
-    </main>
-  );
+export function loader() {
+  throw redirect("/cal", 302);
 }
