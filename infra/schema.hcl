@@ -7,12 +7,12 @@ table "workouts" {
     type = int
   }
   column "utc_date" {
-    type = varchar(255)
+    type = text
   }
   column "title" {
-    type = varchar(255)
+    type = text
   }
   column "notes" {
-    type = varchar(255)
+    type = text
   }
 }

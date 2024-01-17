@@ -1,18 +1,18 @@
-import { createClient, type Client } from "@libsql/client";
+import { createClient } from "@libsql/client";
 
 function setupDb() {
-  let dbClient: Client;
   if (process.env.NODE_ENV === "production" && process.env.DB_URL) {
-    dbClient = createClient({
+    return createClient({
       url: process.env.DB_URL,
       authToken: process.env.DB_TOKEN,
     });
-  } else {
-    dbClient = createClient({
+  }
+  if (process.env.NODE_ENV === "development") {
+    return createClient({
       url: "file:infra/dev.db",
     });
   }
-  return dbClient;
+  throw Error("db's a no go, bro");
 }
 
 export const db = setupDb();

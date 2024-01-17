@@ -1,6 +1,17 @@
-# Welcome to Remix!
+# It's Gymmy Stewart!
 
-- [Remix Docs](https://remix.run/docs)
+Yo you gotta have these shits brother
+- [atlas](https://atlasgo.io/getting-started/#installation)
+- [turso](https://docs.turso.tech/reference/turso-cli#installation)
+- [sqlite3](https://www.sqlite.org/download.html)
+
+## Local DB
+
+Setup the local sqlite db my guy
+
+```sh
+npm run db:create-local
+```
 
 ## Development
 
@@ -10,7 +21,14 @@ From your terminal:
 npm run dev
 ```
 
-This starts your app in development mode, rebuilding assets on file changes.
+## Turso DB
+
+Env variables:
+
+```
+DB_URL=
+DB_TOKEN=
+```
 
 ## Deployment
 
@@ -25,8 +43,6 @@ Then run the app in production mode:
 ```sh
 npm start
 ```
-
-Now you'll need to pick a host to deploy it to.
 
 ### DIY
 
