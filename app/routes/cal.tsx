@@ -1,3 +1,4 @@
+import { ResultSet } from "@libsql/client";
 import {
   json,
   type LoaderFunctionArgs,
@@ -5,7 +6,9 @@ import {
 } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { v4 as uuid } from "uuid";
+import { z } from "zod";
 import { db } from "~/db";
+import { Workout, workoutSchema } from "~/types";
 
 export const meta: MetaFunction = () => {
   return [
@@ -15,14 +18,25 @@ export const meta: MetaFunction = () => {
 };
 
 export async function loader(args: LoaderFunctionArgs) {
-  const result = await db.execute("select * from workouts");
-  console.log("res", result);
+  const { rows } = await db.execute("select id,utc_date from workouts");
+  const workouts = z
+    .array(workoutSchema.pick({ id: true, utc_date: true }))
+    .parse(rows);
   const startDate = new Date().toUTCString();
   return json({
     user: {
       name: "Mike",
       startDate,
     },
+    workouts: workouts.map((workout) => {
+      const date = new Date(workout.utc_date);
+      return {
+        ...workout,
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        date: date.getDate(),
+      };
+    }),
   });
 }
 
@@ -91,18 +105,26 @@ function DateButton({ date, ...buttonProps }: DateButtonProps) {
 }
 
 export default function Index() {
-  const { user } = useLoaderData<typeof loader>();
+  const { workouts } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const today = new Date();
   const month = today.getMonth();
-  const dates = buildDates(today);
+  const year = today.getFullYear();
+  const dates = buildDates(today).map((date) => {
+    const workout = workouts.find(
+      (w) => w.year === year && w.month === month && w.date === date.date,
+    );
+    return {
+      ...date,
+      workout,
+    };
+  });
 
   function buildUTCDate(date: number) {
     return new Date(today.getFullYear(), month, date).toUTCString();
   }
 
   function onEmptyClick(date: number) {
-    console.log("empty");
     navigate(`/cal/${buildUTCDate(date)}`);
   }
   return (
@@ -117,10 +139,18 @@ export default function Index() {
               {abbrev}
             </h2>
           ))}
-          {dates.map(({ date, id }) => {
+          {dates.map(({ date, id, workout }) => {
             return (
               <div key={id} className="w-full">
-                {date && (
+                {workout && date && (
+                  <div className="bg-red-400">
+                    <DateButton
+                      date={date}
+                      onClick={() => onEmptyClick(date)}
+                    />
+                  </div>
+                )}
+                {!workout && date && (
                   <DateButton date={date} onClick={() => onEmptyClick(date)} />
                 )}
               </div>
