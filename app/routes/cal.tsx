@@ -1,4 +1,3 @@
-import { ResultSet } from "@libsql/client";
 import {
   json,
   type LoaderFunctionArgs,
@@ -7,8 +6,8 @@ import {
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
-import { db } from "~/db";
-import { Workout, workoutSchema } from "~/types";
+import { db } from "~/db.server";
+import { workoutSchema } from "~/types";
 
 export const meta: MetaFunction = () => {
   return [

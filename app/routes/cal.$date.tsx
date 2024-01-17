@@ -5,7 +5,7 @@ import {
   type MetaFunction,
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { db } from "~/db";
+import { db } from "~/db.server";
 import { z } from "zod";
 import { workoutSchema } from "~/types";
 
