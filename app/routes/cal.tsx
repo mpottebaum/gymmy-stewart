@@ -1,3 +1,4 @@
+import { ResultSet } from "@libsql/client";
 import {
   json,
   type LoaderFunctionArgs,
@@ -5,6 +6,9 @@ import {
 } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { v4 as uuid } from "uuid";
+import { z } from "zod";
+import { db } from "~/db";
+import { Workout, workoutSchema } from "~/types";
 
 export const meta: MetaFunction = () => {
   return [
@@ -13,93 +17,26 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-const CYCLE_LENGTH = 9;
-
-type GymDayType = "arms" | "legs" | undefined;
-
-interface Workout {
-  id: string;
-  utcDate: string;
-  title: string;
-  notes: string;
-}
-
-interface FutureGymDay {
-  id: string;
-  type: GymDayType;
-  date: number;
-}
-
-type FutureGymDays = Record<FutureGymDay["date"], FutureGymDay>;
-
-function isInCycle(startCycleDate: Date, date: Date) {
-  const startNextCycleDate = new Date(
-    startCycleDate.getFullYear(),
-    startCycleDate.getMonth(),
-    startCycleDate.getDate() + CYCLE_LENGTH,
-  );
-  return date > startCycleDate && date < startNextCycleDate;
-}
-
-const futureGymDayTypes: GymDayType[] = [
-  "arms",
-  undefined,
-  "legs",
-  undefined,
-  "arms",
-  undefined,
-  "legs",
-  undefined,
-  undefined,
-];
-
-function buildFutureGymDays(startDate: Date, today: Date) {
-  let startCycleDate = startDate;
-  while (!isInCycle(startCycleDate, today)) {
-    startCycleDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + CYCLE_LENGTH,
-    );
-  }
-  const startGymDays = startCycleDate;
-
-  const lastDateInMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0,
-  );
-  let currentDate = startGymDays;
-  const gymDays: FutureGymDays = {};
-  let cycleDate = 0;
-  while (currentDate <= lastDateInMonth) {
-    const gymDay = {
-      id: uuid(),
-      type: futureGymDayTypes[cycleDate],
-      date: currentDate.getDate(),
-    };
-    gymDays[gymDay.date] = gymDay;
-    currentDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate() + 1,
-    );
-    cycleDate++;
-    if (cycleDate >= CYCLE_LENGTH) cycleDate = 0;
-  }
-  return gymDays;
-}
-
-export function loader(args: LoaderFunctionArgs) {
+export async function loader(args: LoaderFunctionArgs) {
+  const { rows } = await db.execute("select id,utc_date from workouts");
+  const workouts = z
+    .array(workoutSchema.pick({ id: true, utc_date: true }))
+    .parse(rows);
   const startDate = new Date().toUTCString();
-  const startDateConstructo = new Date(startDate);
-  const futureGymDays = buildFutureGymDays(startDateConstructo, new Date());
   return json({
     user: {
       name: "Mike",
       startDate,
     },
-    futureGymDays,
+    workouts: workouts.map((workout) => {
+      const date = new Date(workout.utc_date);
+      return {
+        ...workout,
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        date: date.getDate(),
+      };
+    }),
   });
 }
 
@@ -168,56 +105,52 @@ function DateButton({ date, ...buttonProps }: DateButtonProps) {
 }
 
 export default function Index() {
-  const { user, futureGymDays } = useLoaderData<typeof loader>();
+  const { workouts } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const today = new Date();
   const month = today.getMonth();
-  const dates = buildDates(today);
+  const year = today.getFullYear();
+  const dates = buildDates(today).map((date) => {
+    const workout = workouts.find(
+      (w) => w.year === year && w.month === month && w.date === date.date,
+    );
+    return {
+      ...date,
+      workout,
+    };
+  });
 
   function buildUTCDate(date: number) {
     return new Date(today.getFullYear(), month, date).toUTCString();
   }
 
-  function onArmsClick(date: number) {
-    console.log("arms");
-    navigate(`/cal/${buildUTCDate(date)}?type=arms`);
-  }
-  function onLegsClick(date: number) {
-    console.log("legs");
-    navigate(`/cal/${buildUTCDate(date)}?type=legs`);
-  }
   function onEmptyClick(date: number) {
-    console.log("empty");
     navigate(`/cal/${buildUTCDate(date)}`);
   }
   return (
-    <main className="flex flex-col">
+    <main className="flex h-full flex-col">
       <section>
         <header className="flex justify-center">
           <h1 className="uppercase">{months[month]}</h1>
         </header>
         <article className="grid grid-cols-7">
           {weekDays.map(({ abbrev, name }) => (
-            <h2 key={name} className="uppercase text-center p-2">
+            <h2 key={name} className="p-2 text-center uppercase">
               {abbrev}
             </h2>
           ))}
-          {dates.map(({ date, id }) => {
-            const futureGymDay = date && futureGymDays[date];
-            const isFutureGymDay = futureGymDay && futureGymDay.type;
+          {dates.map(({ date, id, workout }) => {
             return (
               <div key={id} className="w-full">
-                {isFutureGymDay && futureGymDay.type === "arms" && (
-                  <div className="w-full bg-red-600">
-                    <DateButton date={date} onClick={() => onArmsClick(date)} />
+                {workout && date && (
+                  <div className="bg-red-400">
+                    <DateButton
+                      date={date}
+                      onClick={() => onEmptyClick(date)}
+                    />
                   </div>
                 )}
-                {isFutureGymDay && futureGymDay.type === "legs" && (
-                  <div className="w-full bg-blue-600">
-                    <DateButton date={date} onClick={() => onLegsClick(date)} />
-                  </div>
-                )}
-                {!isFutureGymDay && date && (
+                {!workout && date && (
                   <DateButton date={date} onClick={() => onEmptyClick(date)} />
                 )}
               </div>
@@ -225,9 +158,7 @@ export default function Index() {
           })}
         </article>
       </section>
-      <section>
-        <Outlet />
-      </section>
+      <Outlet />
     </main>
   );
 }

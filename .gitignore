@@ -5,3 +5,4 @@ package-lock.json
 /build
 /public/build
 .env
+dev.db
