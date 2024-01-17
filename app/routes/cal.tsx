@@ -5,6 +5,7 @@ import {
 } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { v4 as uuid } from "uuid";
+import { db } from "~/db";
 
 export const meta: MetaFunction = () => {
   return [
@@ -13,7 +14,9 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export function loader(args: LoaderFunctionArgs) {
+export async function loader(args: LoaderFunctionArgs) {
+  const result = await db.execute("select * from workouts");
+  console.log("res", result);
   const startDate = new Date().toUTCString();
   return json({
     user: {
