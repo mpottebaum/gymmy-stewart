@@ -6,7 +6,9 @@ import {
 import {
   Outlet,
   useLoaderData,
+  useLocation,
   useNavigate,
+  useParams,
   useSearchParams,
 } from "@remix-run/react";
 import { v4 as uuid } from "uuid";
@@ -105,6 +107,8 @@ function DateButton({ date, ...buttonProps }: DateButtonProps) {
 }
 
 export default function Index() {
+  const { date: selectedUtcDate } = useParams();
+  const selectedDate = !!selectedUtcDate && new Date(selectedUtcDate);
   const { workouts } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -135,8 +139,8 @@ export default function Index() {
     <main className="flex h-full flex-col items-center">
       <section className="flex h-full w-full max-w-2xl flex-col justify-between md:flex-col-reverse md:justify-end">
         <section className="flex flex-col">
-          <header className="flex flex-col p-4">
-            <h1 className="text-center uppercase">
+          <header className="flex flex-col bg-blue-800 p-4">
+            <h1 className="text-center text-2xl font-bold uppercase text-white">
               {months[month]} {year}
             </h1>
           </header>
@@ -147,17 +151,35 @@ export default function Index() {
               </h2>
             ))}
             {dates.map(({ date, id, workout }) => {
+              const isSelected =
+                selectedDate && selectedDate.getDate() === date;
               return (
                 <div key={id} className="w-full">
-                  {workout && date && (
-                    <div className="bg-red-400">
+                  {isSelected && workout && date && (
+                    <div className="bg-orange-300 text-blue-700">
                       <DateButton
                         date={date}
                         onClick={() => onDateClick(date)}
                       />
                     </div>
                   )}
-                  {!workout && date && (
+                  {!isSelected && workout && date && (
+                    <div className="bg-orange-600 text-white">
+                      <DateButton
+                        date={date}
+                        onClick={() => onDateClick(date)}
+                      />
+                    </div>
+                  )}
+                  {isSelected && !workout && date && (
+                    <div className="bg-blue-300 text-orange-700">
+                      <DateButton
+                        date={date}
+                        onClick={() => onDateClick(date)}
+                      />
+                    </div>
+                  )}
+                  {!isSelected && !workout && date && (
                     <DateButton date={date} onClick={() => onDateClick(date)} />
                   )}
                 </div>
@@ -166,8 +188,9 @@ export default function Index() {
           </article>
           <Outlet />
         </section>
-        <nav className="flex justify-between p-4">
+        <nav className="flex justify-between bg-orange-600 p-4">
           <button
+            className="rounded border-none bg-blue-200 px-7 py-2 text-orange-700"
             onClick={() => {
               const newMonth = month - 1;
               const newMonthParam = newMonth < 0 ? 11 : newMonth;
@@ -179,8 +202,14 @@ export default function Index() {
           >
             &#60;
           </button>
-          <button onClick={() => navigate("/cal")}>Now</button>
           <button
+            className="rounded border-none bg-blue-200 px-7 py-2 uppercase text-orange-700"
+            onClick={() => navigate("/cal")}
+          >
+            Now
+          </button>
+          <button
+            className="rounded border-none bg-blue-200 px-7 py-2 text-orange-700"
             onClick={() => {
               const newMonth = month + 1;
               const newMonthParam = newMonth > 11 ? 0 : newMonth;

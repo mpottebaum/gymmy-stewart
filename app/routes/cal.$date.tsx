@@ -53,7 +53,6 @@ export default function DateRoute() {
   return (
     <section className="h-full p-4">
       <header className="flex w-full justify-evenly pb-4 capitalize">
-        <h4>Workout</h4>
         <h1>
           {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
         </h1>
@@ -61,25 +60,32 @@ export default function DateRoute() {
       {!workout && (
         <Form method="POST" className="flex flex-col items-center">
           <input name="epoch_date" type="hidden" value={epochDate} />
-          <div className="flex w-full flex-col pb-4">
-            <label htmlFor="title">Title</label>
+          <div className="flex w-full flex-col items-center pb-4">
+            <label htmlFor="title" className="pb-1">
+              Title
+            </label>
             <input
               id="title"
               name="title"
               type="text"
-              className="border border-black"
+              className="w-full border border-blue-700 bg-orange-100 p-2"
             />
           </div>
-          <div className="flex w-full flex-col pb-4">
-            <label htmlFor="notes">Notes</label>
+          <div className="flex w-full flex-col items-center pb-4">
+            <label htmlFor="notes" className="pb-1">
+              Notes
+            </label>
             <textarea
               id="notes"
               name="notes"
-              rows={10}
-              className="border border-black"
+              rows={8}
+              className="w-full border border-blue-700 bg-orange-100 p-2"
             ></textarea>
           </div>
-          <button type="submit" className="rounded border border-black p-2">
+          <button
+            type="submit"
+            className="rounded border border-blue-700 bg-orange-600 p-2 text-white"
+          >
             Get Some
           </button>
         </Form>
