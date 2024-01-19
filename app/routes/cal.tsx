@@ -3,9 +3,15 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
 } from "@remix-run/node";
-import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
+import {
+  Outlet,
+  useLoaderData,
+  useNavigate,
+  useSearchParams,
+} from "@remix-run/react";
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
+import { months, weekDays } from "~/constants/shared";
 import { db } from "~/db.server";
 import { workoutSchema } from "~/types";
 
@@ -28,7 +34,12 @@ function getMonthDateBounds(today: Date) {
 }
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { firstDate, lastDate } = getMonthDateBounds(new Date());
+  const searchParams = new URLSearchParams(args.request.url);
+  const urlMonth = searchParams.get("month");
+  const urlYear = searchParams.get("year");
+  const currentMonthDate =
+    urlMonth && urlYear ? new Date(+urlYear, +urlMonth) : new Date();
+  const { firstDate, lastDate } = getMonthDateBounds(currentMonthDate);
   const { rows } = await db.execute({
     sql: "select id,epoch_date from workouts where epoch_date >= $first and epoch_date <= $last",
     args: {
@@ -56,31 +67,6 @@ export async function loader(args: LoaderFunctionArgs) {
     }),
   });
 }
-
-const weekDays = [
-  { name: "sunday", abbrev: "s" },
-  { name: "monday", abbrev: "m" },
-  { name: "tuesday", abbrev: "t" },
-  { name: "wednesday", abbrev: "w" },
-  { name: "thursday", abbrev: "t" },
-  { name: "friday", abbrev: "f" },
-  { name: "saturday", abbrev: "s" },
-];
-
-const months = [
-  "january",
-  "february",
-  "march",
-  "april",
-  "may",
-  "june",
-  "july",
-  "august",
-  "september",
-  "october",
-  "november",
-  "december",
-];
 
 interface CalendarDate {
   id: string;
@@ -121,7 +107,11 @@ function DateButton({ date, ...buttonProps }: DateButtonProps) {
 export default function Index() {
   const { workouts } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const today = new Date();
+  const [searchParams] = useSearchParams();
+  const urlMonth = searchParams.get("month");
+  const urlYear = searchParams.get("year");
+  const today =
+    urlMonth && urlYear ? new Date(+urlYear, +urlMonth) : new Date();
   const month = today.getMonth();
   const year = today.getFullYear();
   const dates = buildDates(today).map((date) => {
@@ -138,14 +128,43 @@ export default function Index() {
     return new Date(today.getFullYear(), month, date).toUTCString();
   }
 
-  function onEmptyClick(date: number) {
-    navigate(`/cal/${buildUTCDate(date)}`);
+  function onDateClick(date: number) {
+    navigate(`/cal/${buildUTCDate(date)}?${searchParams}`);
   }
   return (
     <main className="flex h-full flex-col">
       <section>
-        <header className="flex justify-center">
-          <h1 className="uppercase">{months[month]}</h1>
+        <header className="flex flex-col p-4">
+          <nav className="flex justify-between">
+            <button
+              onClick={() => {
+                const newMonth = month - 1;
+                const newMonthParam = newMonth < 0 ? 11 : newMonth;
+                searchParams.set("month", newMonthParam.toString());
+                const newYearParam = newMonth < 0 ? year - 1 : year;
+                searchParams.set("year", newYearParam.toString());
+                navigate(`/cal?${searchParams}`);
+              }}
+            >
+              &#60;
+            </button>
+            <button onClick={() => navigate("/cal")}>Now</button>
+            <button
+              onClick={() => {
+                const newMonth = month + 1;
+                const newMonthParam = newMonth > 11 ? 0 : newMonth;
+                searchParams.set("month", newMonthParam.toString());
+                const newYearParam = newMonth > 11 ? year + 1 : year;
+                searchParams.set("year", newYearParam.toString());
+                navigate(`/cal?${searchParams}`);
+              }}
+            >
+              &#62;
+            </button>
+          </nav>
+          <h1 className="text-center uppercase">
+            {months[month]} {year}
+          </h1>
         </header>
         <article className="grid grid-cols-7">
           {weekDays.map(({ abbrev, name }) => (
@@ -158,14 +177,11 @@ export default function Index() {
               <div key={id} className="w-full">
                 {workout && date && (
                   <div className="bg-red-400">
-                    <DateButton
-                      date={date}
-                      onClick={() => onEmptyClick(date)}
-                    />
+                    <DateButton date={date} onClick={() => onDateClick(date)} />
                   </div>
                 )}
                 {!workout && date && (
-                  <DateButton date={date} onClick={() => onEmptyClick(date)} />
+                  <DateButton date={date} onClick={() => onDateClick(date)} />
                 )}
               </div>
             );

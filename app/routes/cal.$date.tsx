@@ -7,7 +7,8 @@ import {
 import { Form, useLoaderData } from "@remix-run/react";
 import { db } from "~/db.server";
 import { z } from "zod";
-import { workoutSchema } from "~/types";
+import { Workout, workoutSchema } from "~/types";
+import { months } from "~/constants/shared";
 
 export const meta: MetaFunction = () => {
   return [
@@ -31,30 +32,31 @@ export async function loader({ params }: LoaderFunctionArgs) {
     args: [epochDate],
   });
   const workoutRow = rows[0];
+  let workout: Workout | undefined;
   if (workoutRow) {
-    const workout = workoutSchema.parse(workoutRow);
-    return json({
-      workout,
-      utcDate: undefined,
-    });
+    workout = workoutSchema.parse(workoutRow);
   }
+  let utcDate: string | undefined;
   if (date && isDateValid(date)) {
-    return json({
-      workout: undefined,
-      utcDate: date,
-    });
+    utcDate = date;
   }
-  throw Error("invalid utc date");
+  return json({
+    workout,
+    utcDate,
+  });
 }
 
 export default function DateRoute() {
   const { workout, utcDate } = useLoaderData<typeof loader>();
-  const epochDate = new Date(utcDate).getTime();
+  const date = new Date(utcDate ?? "");
+  const epochDate = date.getTime();
   return (
     <section className="h-full p-4">
-      <header className="pb-4">
-        <h1>{utcDate}</h1>
+      <header className="flex w-full justify-evenly pb-4 capitalize">
         <h4>Workout</h4>
+        <h1>
+          {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
+        </h1>
       </header>
       {!workout && (
         <Form method="POST" className="flex flex-col items-center">

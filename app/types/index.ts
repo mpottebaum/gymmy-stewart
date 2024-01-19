@@ -7,4 +7,4 @@ export const workoutSchema = z.object({
   notes: z.string(),
 });
 
-export type Workout = typeof workoutSchema;
+export type Workout = z.infer<typeof workoutSchema>;
