@@ -133,8 +133,8 @@ export default function Index() {
   }
   return (
     <main className="flex h-full flex-col items-center">
-      <section className='flex h-full w-full max-w-2xl flex-col justify-between'>
-        <section className='flex flex-col'>
+      <section className="flex h-full w-full max-w-2xl flex-col justify-between md:flex-col-reverse md:justify-end">
+        <section className="flex flex-col">
           <header className="flex flex-col p-4">
             <h1 className="text-center uppercase">
               {months[month]} {year}
@@ -151,7 +151,10 @@ export default function Index() {
                 <div key={id} className="w-full">
                   {workout && date && (
                     <div className="bg-red-400">
-                      <DateButton date={date} onClick={() => onDateClick(date)} />
+                      <DateButton
+                        date={date}
+                        onClick={() => onDateClick(date)}
+                      />
                     </div>
                   )}
                   {!workout && date && (
@@ -161,8 +164,8 @@ export default function Index() {
               );
             })}
           </article>
+          <Outlet />
         </section>
-        <Outlet />
         <nav className="flex justify-between p-4">
           <button
             onClick={() => {
