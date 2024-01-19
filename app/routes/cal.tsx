@@ -133,62 +133,64 @@ export default function Index() {
   }
   return (
     <main className="flex h-full flex-col">
-      <section>
-        <header className="flex flex-col p-4">
-          <nav className="flex justify-between">
-            <button
-              onClick={() => {
-                const newMonth = month - 1;
-                const newMonthParam = newMonth < 0 ? 11 : newMonth;
-                searchParams.set("month", newMonthParam.toString());
-                const newYearParam = newMonth < 0 ? year - 1 : year;
-                searchParams.set("year", newYearParam.toString());
-                navigate(`/cal?${searchParams}`);
-              }}
-            >
-              &#60;
-            </button>
-            <button onClick={() => navigate("/cal")}>Now</button>
-            <button
-              onClick={() => {
-                const newMonth = month + 1;
-                const newMonthParam = newMonth > 11 ? 0 : newMonth;
-                searchParams.set("month", newMonthParam.toString());
-                const newYearParam = newMonth > 11 ? year + 1 : year;
-                searchParams.set("year", newYearParam.toString());
-                navigate(`/cal?${searchParams}`);
-              }}
-            >
-              &#62;
-            </button>
-          </nav>
-          <h1 className="text-center uppercase">
-            {months[month]} {year}
-          </h1>
-        </header>
-        <article className="grid grid-cols-7">
-          {weekDays.map(({ abbrev, name }) => (
-            <h2 key={name} className="p-2 text-center uppercase">
-              {abbrev}
-            </h2>
-          ))}
-          {dates.map(({ date, id, workout }) => {
-            return (
-              <div key={id} className="w-full">
-                {workout && date && (
-                  <div className="bg-red-400">
+      <section className='flex h-full flex-col justify-between'>
+        <section className='flex flex-col'>
+          <header className="flex flex-col p-4">
+            <h1 className="text-center uppercase">
+              {months[month]} {year}
+            </h1>
+          </header>
+          <article className="grid grid-cols-7">
+            {weekDays.map(({ abbrev, name }) => (
+              <h2 key={name} className="p-2 text-center uppercase">
+                {abbrev}
+              </h2>
+            ))}
+            {dates.map(({ date, id, workout }) => {
+              return (
+                <div key={id} className="w-full">
+                  {workout && date && (
+                    <div className="bg-red-400">
+                      <DateButton date={date} onClick={() => onDateClick(date)} />
+                    </div>
+                  )}
+                  {!workout && date && (
                     <DateButton date={date} onClick={() => onDateClick(date)} />
-                  </div>
-                )}
-                {!workout && date && (
-                  <DateButton date={date} onClick={() => onDateClick(date)} />
-                )}
-              </div>
-            );
-          })}
-        </article>
+                  )}
+                </div>
+              );
+            })}
+          </article>
+        </section>
+        <Outlet />
+        <nav className="flex justify-between p-4">
+          <button
+            onClick={() => {
+              const newMonth = month - 1;
+              const newMonthParam = newMonth < 0 ? 11 : newMonth;
+              searchParams.set("month", newMonthParam.toString());
+              const newYearParam = newMonth < 0 ? year - 1 : year;
+              searchParams.set("year", newYearParam.toString());
+              navigate(`/cal?${searchParams}`);
+            }}
+          >
+            &#60;
+          </button>
+          <button onClick={() => navigate("/cal")}>Now</button>
+          <button
+            onClick={() => {
+              const newMonth = month + 1;
+              const newMonthParam = newMonth > 11 ? 0 : newMonth;
+              searchParams.set("month", newMonthParam.toString());
+              const newYearParam = newMonth > 11 ? year + 1 : year;
+              searchParams.set("year", newYearParam.toString());
+              navigate(`/cal?${searchParams}`);
+            }}
+          >
+            &#62;
+          </button>
+        </nav>
       </section>
-      <Outlet />
     </main>
   );
 }
