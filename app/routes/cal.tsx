@@ -87,7 +87,7 @@ export default function Index() {
   return (
     <main className="flex h-full flex-col items-center">
       <section className="flex h-full w-full max-w-2xl flex-col justify-between md:flex-col-reverse md:justify-end">
-        <section className="flex flex-col">
+        <section className="flex h-full flex-col">
           <header className="flex flex-col bg-blue-800 p-4">
             <h1 className="text-center text-2xl font-bold uppercase text-white">
               {months[month]} {year}

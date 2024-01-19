@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Workout, workoutSchema } from "~/types";
 import { months } from "~/constants/shared";
 import { isDateValid } from "~/utils";
+import { v4 as uuid } from "uuid";
 
 export const meta: MetaFunction = () => {
   return [
@@ -45,8 +46,11 @@ export default function DateRoute() {
   const { workout, utcDate } = useLoaderData<typeof loader>();
   const date = new Date(utcDate ?? "");
   const epochDate = date.getTime();
+  const formattedNotes =
+    workout?.notes.split("\n").map((note) => ({ note, id: uuid() })) ?? [];
+  console.log({ workout, formattedNotes });
   return (
-    <section className="h-full p-4">
+    <section className="flex h-full flex-col p-4">
       <header className="flex w-full justify-evenly pb-4 capitalize">
         <h1>
           {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
@@ -55,7 +59,7 @@ export default function DateRoute() {
       {!workout && (
         <Form method="POST" className="flex flex-col items-center">
           <input name="epoch_date" type="hidden" value={epochDate} />
-          <div className="flex w-full flex-col items-center pb-4">
+          <div className="flex w-full flex-col pb-4">
             <label htmlFor="title" className="pb-1">
               Title
             </label>
@@ -63,10 +67,10 @@ export default function DateRoute() {
               id="title"
               name="title"
               type="text"
-              className="w-full border border-blue-700 bg-orange-100 p-2"
+              className="w-full rounded border border-blue-700 bg-blue-100 p-2"
             />
           </div>
-          <div className="flex w-full flex-col items-center pb-4">
+          <div className="flex w-full flex-col pb-4">
             <label htmlFor="notes" className="pb-1">
               Notes
             </label>
@@ -74,7 +78,7 @@ export default function DateRoute() {
               id="notes"
               name="notes"
               rows={8}
-              className="w-full border border-blue-700 bg-orange-100 p-2"
+              className="w-full rounded border border-blue-700 bg-blue-100 p-2"
             ></textarea>
           </div>
           <button
@@ -86,9 +90,13 @@ export default function DateRoute() {
         </Form>
       )}
       {workout && (
-        <div>
-          <h2>{workout.title}</h2>
-          <p>{workout.notes}</p>
+        <div className="flex h-full flex-col">
+          <h2 className="pb-1 font-bold capitalize">{workout.title}</h2>
+          <div className="h-full w-full rounded border border-blue-700 bg-orange-100 p-2">
+            {formattedNotes.map(({ note, id }) => (
+              <p key={id}>{note ? note : <span>&nbsp;</span>}</p>
+            ))}
+          </div>
         </div>
       )}
     </section>
