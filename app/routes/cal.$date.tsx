@@ -48,7 +48,6 @@ export default function DateRoute() {
   const epochDate = date.getTime();
   const formattedNotes =
     workout?.notes.split("\n").map((note) => ({ note, id: uuid() })) ?? [];
-  console.log({ workout, formattedNotes });
   return (
     <section className="flex h-full flex-col p-4">
       <header className="flex w-full justify-evenly pb-4 capitalize">
