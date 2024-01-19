@@ -7,14 +7,14 @@ table "workouts" {
     type = integer
     auto_increment = true
   }
-  column "utc_date" {
-    type = text
-  }
   column "title" {
     type = text
   }
   column "notes" {
     type = text
+  }
+  column "epoch_date" {
+    type = date
   }
   primary_key  {
     columns = [column.id]

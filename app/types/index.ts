@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const workoutSchema = z.object({
   id: z.number(),
-  utc_date: z.string(),
+  epoch_date: z.number(),
   title: z.string(),
   notes: z.string(),
 });

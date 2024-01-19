@@ -16,10 +16,28 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+function getMonthDateBounds(today: Date) {
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDate = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0);
+  return {
+    firstDate,
+    lastDate,
+  };
+}
+
 export async function loader(args: LoaderFunctionArgs) {
-  const { rows } = await db.execute("select id,utc_date from workouts");
+  const { firstDate, lastDate } = getMonthDateBounds(new Date());
+  const { rows } = await db.execute({
+    sql: "select id,epoch_date from workouts where epoch_date >= $first and epoch_date <= $last",
+    args: {
+      first: firstDate.getTime(),
+      last: lastDate.getTime(),
+    },
+  });
   const workouts = z
-    .array(workoutSchema.pick({ id: true, utc_date: true }))
+    .array(workoutSchema.pick({ id: true, epoch_date: true }))
     .parse(rows);
   const startDate = new Date().toUTCString();
   return json({
@@ -28,7 +46,7 @@ export async function loader(args: LoaderFunctionArgs) {
       startDate,
     },
     workouts: workouts.map((workout) => {
-      const date = new Date(workout.utc_date);
+      const date = new Date(workout.epoch_date);
       return {
         ...workout,
         year: date.getFullYear(),
@@ -70,10 +88,7 @@ interface CalendarDate {
 }
 
 function buildDates(today: Date): CalendarDate[] {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const firstDate = new Date(year, month, 1);
-  const lastDate = new Date(year, month + 1, 0);
+  const { firstDate, lastDate } = getMonthDateBounds(today);
   const days = [...new Array(lastDate.getDate())].map((_, i) => ({
     date: i + 1,
     id: uuid(),
