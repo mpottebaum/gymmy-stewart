@@ -132,8 +132,8 @@ export default function Index() {
     navigate(`/cal/${buildUTCDate(date)}?${searchParams}`);
   }
   return (
-    <main className="flex h-full flex-col">
-      <section className='flex h-full flex-col justify-between'>
+    <main className="flex h-full flex-col items-center">
+      <section className='flex h-full w-full max-w-2xl flex-col justify-between'>
         <section className='flex flex-col'>
           <header className="flex flex-col p-4">
             <h1 className="text-center uppercase">
