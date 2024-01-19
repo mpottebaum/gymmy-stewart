@@ -9,6 +9,7 @@ import { db } from "~/db.server";
 import { z } from "zod";
 import { Workout, workoutSchema } from "~/types";
 import { months } from "~/constants/shared";
+import { isDateValid } from "~/utils";
 
 export const meta: MetaFunction = () => {
   return [
@@ -16,12 +17,6 @@ export const meta: MetaFunction = () => {
     { name: "description", content: "Get it, Brother" },
   ];
 };
-
-function isDateValid(utcDate?: string) {
-  if (!utcDate) return false;
-  const date = new Date(utcDate);
-  return date.toString() !== "Invalid Date";
-}
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const { date } = params;

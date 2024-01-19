@@ -6,16 +6,16 @@ import {
 import {
   Outlet,
   useLoaderData,
-  useLocation,
   useNavigate,
   useParams,
   useSearchParams,
 } from "@remix-run/react";
-import { v4 as uuid } from "uuid";
 import { z } from "zod";
+import { DateButton } from "~/components";
 import { months, weekDays } from "~/constants/shared";
 import { db } from "~/db.server";
 import { workoutSchema } from "~/types";
+import { buildCalendarDates, buildUTCDate, getMonthDateBounds } from "~/utils";
 
 export const meta: MetaFunction = () => {
   return [
@@ -23,17 +23,6 @@ export const meta: MetaFunction = () => {
     { name: "description", content: "Get it, Brother" },
   ];
 };
-
-function getMonthDateBounds(today: Date) {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const firstDate = new Date(year, month, 1);
-  const lastDate = new Date(year, month + 1, 0);
-  return {
-    firstDate,
-    lastDate,
-  };
-}
 
 export async function loader(args: LoaderFunctionArgs) {
   const searchParams = new URLSearchParams(args.request.url);
@@ -70,42 +59,6 @@ export async function loader(args: LoaderFunctionArgs) {
   });
 }
 
-interface CalendarDate {
-  id: string;
-  date: number | null;
-}
-
-function buildDates(today: Date): CalendarDate[] {
-  const { firstDate, lastDate } = getMonthDateBounds(today);
-  const days = [...new Array(lastDate.getDate())].map((_, i) => ({
-    date: i + 1,
-    id: uuid(),
-  }));
-  const firstDay = firstDate.getDay();
-  const daysPad = [...new Array(firstDay)].map(() => ({
-    id: uuid(),
-    date: null,
-  }));
-  return [...daysPad, ...days];
-}
-
-type DateButtonProps = {
-  date: number;
-} & React.DetailedHTMLProps<
-  React.ButtonHTMLAttributes<HTMLButtonElement>,
-  HTMLButtonElement
->;
-
-function DateButton({ date, ...buttonProps }: DateButtonProps) {
-  return (
-    <div className="flex items-center">
-      <button {...buttonProps} className="w-full p-2">
-        {date}
-      </button>
-    </div>
-  );
-}
-
 export default function Index() {
   const { date: selectedUtcDate } = useParams();
   const selectedDate = !!selectedUtcDate && new Date(selectedUtcDate);
@@ -118,7 +71,7 @@ export default function Index() {
     urlMonth && urlYear ? new Date(+urlYear, +urlMonth) : new Date();
   const month = today.getMonth();
   const year = today.getFullYear();
-  const dates = buildDates(today).map((date) => {
+  const dates = buildCalendarDates(today).map((date) => {
     const workout = workouts.find(
       (w) => w.year === year && w.month === month && w.date === date.date,
     );
@@ -128,12 +81,8 @@ export default function Index() {
     };
   });
 
-  function buildUTCDate(date: number) {
-    return new Date(today.getFullYear(), month, date).toUTCString();
-  }
-
   function onDateClick(date: number) {
-    navigate(`/cal/${buildUTCDate(date)}?${searchParams}`);
+    navigate(`/cal/${buildUTCDate(year, month, date)}?${searchParams}`);
   }
   return (
     <main className="flex h-full flex-col items-center">
