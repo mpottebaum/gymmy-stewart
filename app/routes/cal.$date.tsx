@@ -5,9 +5,10 @@ import {
   type MetaFunction,
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { db } from "~/db";
+import { db } from "~/db.server";
 import { z } from "zod";
-import { workoutSchema } from "~/types";
+import { Workout, workoutSchema } from "~/types";
+import { months } from "~/constants/shared";
 
 export const meta: MetaFunction = () => {
   return [
@@ -25,38 +26,41 @@ function isDateValid(utcDate?: string) {
 export async function loader({ params }: LoaderFunctionArgs) {
   const { date } = params;
   const parsedDate = z.string().parse(date);
+  const epochDate = new Date(parsedDate).getTime();
   const { rows } = await db.execute({
-    sql: "select * from workouts where utc_date = ?",
-    args: [parsedDate],
+    sql: "select * from workouts where epoch_date = ?",
+    args: [epochDate],
   });
   const workoutRow = rows[0];
+  let workout: Workout | undefined;
   if (workoutRow) {
-    const workout = workoutSchema.parse(workoutRow);
-    return json({
-      workout,
-      utcDate: undefined,
-    });
+    workout = workoutSchema.parse(workoutRow);
   }
+  let utcDate: string | undefined;
   if (date && isDateValid(date)) {
-    return json({
-      workout: undefined,
-      utcDate: date,
-    });
+    utcDate = date;
   }
-  throw Error("invalid utc date");
+  return json({
+    workout,
+    utcDate,
+  });
 }
 
 export default function DateRoute() {
   const { workout, utcDate } = useLoaderData<typeof loader>();
+  const date = new Date(utcDate ?? "");
+  const epochDate = date.getTime();
   return (
     <section className="h-full p-4">
-      <header className="pb-4">
-        <h1>{utcDate}</h1>
+      <header className="flex w-full justify-evenly pb-4 capitalize">
         <h4>Workout</h4>
+        <h1>
+          {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
+        </h1>
       </header>
       {!workout && (
         <Form method="POST" className="flex flex-col items-center">
-          <input name="utcDate" type="hidden" value={utcDate} />
+          <input name="epoch_date" type="hidden" value={epochDate} />
           <div className="flex w-full flex-col pb-4">
             <label htmlFor="title">Title</label>
             <input
@@ -92,13 +96,13 @@ export default function DateRoute() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const utcDate = z.string().parse(formData.get("utcDate"));
+  const epochDate = z.coerce.number().parse(formData.get("epoch_date"));
   const title = z.string().parse(formData.get("title"));
   const notes = z.string().parse(formData.get("notes"));
   const result = await db.execute({
-    sql: "insert into workouts (utc_date,title,notes) values ($utcDate,$title,$notes);",
+    sql: "insert into workouts (epoch_date,title,notes) values ($epochDate,$title,$notes);",
     args: {
-      utcDate,
+      epochDate,
       title,
       notes,
     },
