@@ -55,10 +55,21 @@ export default function DateRoute() {
   }, [workout]);
   return (
     <section className="flex h-full flex-col p-4">
-      <header className="flex w-full justify-evenly pb-4 capitalize">
-        <h1>
+      <header className="flex w-full justify-between pb-4 capitalize">
+        <h1 className="text-xl font-bold">
           {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
         </h1>
+        {workout && (
+          <Form method="DELETE">
+            <input name="epoch_date" type="hidden" value={epochDate} />
+            <button
+              type="submit"
+              className="rounded border-none bg-blue-200 px-7 py-2 uppercase text-orange-700"
+            >
+              delete
+            </button>
+          </Form>
+        )}
       </header>
       {isEditing && (
         <Form
@@ -108,10 +119,10 @@ export default function DateRoute() {
       {!isEditing && workout && (
         <div className="flex h-full flex-col">
           <button
-            className="pb-1 font-bold capitalize"
+            className="grow pb-1 capitalize"
             onClick={() => setIsEditing(true)}
           >
-            <h2 className="text-start">{workout.title}</h2>
+            <h2 className="text-start text-lg">{workout.title}</h2>
           </button>
           <button
             className="h-full w-full rounded border border-blue-700 bg-orange-100 p-2"
@@ -132,26 +143,27 @@ export default function DateRoute() {
 const sqlers: Record<string, string> = {
   POST: "INSERT INTO workouts (epoch_date,title,notes) VALUES ($epochDate,$title,$notes);",
   PUT: "UPDATE workouts SET title = $title, notes = $notes WHERE epoch_date = $epochDate",
+  DELETE: "DELETE FROM workouts WHERE epoch_date = $epochDate",
 };
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const epochDate = z.coerce.number().parse(formData.get("epoch_date"));
-  const title = z.string().parse(formData.get("title"));
-  const notes = z.string().parse(formData.get("notes"));
+  const title = z.union([z.string(), z.null()]).parse(formData.get("title"));
+  const notes = z.union([z.string(), z.null()]).parse(formData.get("notes"));
   const sql = sqlers[request.method];
   if (!sql) {
     return json({
       ok: false,
-      error: "unknown action",
+      error: "cal.$date action: unhandled method",
     });
   }
   const result = await db.execute({
     sql,
     args: {
       epochDate,
-      title,
-      notes,
+      title: title ?? "",
+      notes: notes ?? "",
     },
   });
   return json({
