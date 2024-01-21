@@ -22,3 +22,10 @@ export const weekDays = [
   { name: "friday", abbrev: "f" },
   { name: "saturday", abbrev: "s" },
 ];
+
+export const routes = {
+  home: "/cal",
+  cal: "/cal",
+  login: "/login",
+  register: "/register",
+};
