@@ -51,7 +51,7 @@ export async function loader({
     currentMonthDate,
   )
   const { rows } = await db.execute({
-    sql: 'select id,epoch_date from workouts where epoch_date >= $first and epoch_date <= $last',
+    sql: 'SELECT id,epoch_date FROM workouts WHERE epoch_date >= $first AND epoch_date <= $last',
     args: {
       first: firstDate.getTime(),
       last: lastDate.getTime(),
@@ -65,12 +65,8 @@ export async function loader({
       }),
     )
     .parse(rows)
-  const startDate = new Date().toUTCString()
   return json({
-    user: {
-      name: 'Mike',
-      startDate,
-    },
+    userId,
     workouts: workouts.map((workout) => {
       const date = new Date(workout.epoch_date)
       return {
@@ -87,7 +83,8 @@ export default function Index() {
   const { date: selectedUtcDate } = useParams()
   const selectedDate =
     !!selectedUtcDate && new Date(selectedUtcDate)
-  const { workouts } = useLoaderData<typeof loader>()
+  const { workouts, userId } =
+    useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const urlMonth = searchParams.get('month')
@@ -117,9 +114,7 @@ export default function Index() {
     )
   }
   return (
-    // <main className="flex h-full flex-col items-center">
-    //   <section className="flex h-full w-full max-w-2xl flex-col justify-between md:flex-col-reverse md:justify-end">
-    <Layout>
+    <Layout userId={userId}>
       <section className='flex h-full flex-col'>
         <header className='flex flex-col bg-blue-800 p-4'>
           <h1 className='text-center text-2xl font-bold uppercase text-white'>
@@ -228,7 +223,5 @@ export default function Index() {
         </button>
       </nav>
     </Layout>
-    //   </section>
-    // </main>
   )
 }

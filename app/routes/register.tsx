@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Link, useActionData } from '@remix-run/react'
 import { routes } from '~/constants/shared'
+import { Layout } from '~/components'
 
 export async function loader({
   request,
@@ -39,7 +40,7 @@ export default function Register() {
     }
   }, [actionData])
   return (
-    <main>
+    <Layout>
       <section className='p-2'>
         <h1>Register</h1>
         <p>
@@ -60,7 +61,7 @@ export default function Register() {
         </Link>
       </section>
       {loginError && <section>{loginError}</section>}
-    </main>
+    </Layout>
   )
 }
 

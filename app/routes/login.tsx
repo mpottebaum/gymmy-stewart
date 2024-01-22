@@ -12,6 +12,7 @@ import {
   createSession,
   serializeSessionCookie,
 } from '~/auth.server'
+import { Layout } from '~/components'
 import { UserForm } from '~/components/user-form'
 import { routes } from '~/constants/shared'
 import { db } from '~/db.server'
@@ -38,7 +39,7 @@ export default function Login() {
     }
   }, [actionData])
   return (
-    <main>
+    <Layout>
       <section className='p-2'>
         <h1>Log In</h1>
         <p>
@@ -59,7 +60,7 @@ export default function Login() {
         </Link>
       </section>
       {loginError && <section>{loginError}</section>}
-    </main>
+    </Layout>
   )
 }
 
