@@ -1,31 +1,48 @@
 import {
   ActionFunctionArgs,
   json,
+  redirect,
   type LoaderFunctionArgs,
   type MetaFunction,
-} from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
-import { db } from "~/db.server";
-import { z } from "zod";
-import { Workout, workoutSchema } from "~/types";
-import { months } from "~/constants/shared";
-import { isDateValid } from "~/utils";
-import { v4 as uuid } from "uuid";
+} from '@remix-run/node';
+import {
+  Form,
+  useLoaderData,
+  useOutletContext,
+} from '@remix-run/react';
+import { db } from '~/db.server';
+import { z } from 'zod';
+import { Workout, workoutSchema } from '~/types';
+import { months, routes } from '~/constants/shared';
+import { isDateValid } from '~/utils';
+import { v4 as uuid } from 'uuid';
+import { useEffect, useState } from 'react';
+import { checkSession } from '~/auth.server';
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Gymmy Stewart" },
-    { name: "description", content: "Get it, Brother" },
+    { title: 'Gymmy Stewart' },
+    {
+      name: 'description',
+      content: 'Get it, Brother',
+    },
   ];
 };
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({
+  params,
+  request,
+}: LoaderFunctionArgs) {
+  const userId = await checkSession(request);
+  if (!userId) {
+    return redirect(routes.login);
+  }
   const { date } = params;
   const parsedDate = z.string().parse(date);
   const epochDate = new Date(parsedDate).getTime();
   const { rows } = await db.execute({
-    sql: "select * from workouts where epoch_date = ?",
-    args: [epochDate],
+    sql: 'SELECT * FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
+    args: { epochDate, userId },
   });
   const workoutRow = rows[0];
   let workout: Workout | undefined;
@@ -43,77 +60,167 @@ export async function loader({ params }: LoaderFunctionArgs) {
 }
 
 export default function DateRoute() {
-  const { workout, utcDate } = useLoaderData<typeof loader>();
-  const date = new Date(utcDate ?? "");
+  const userId = useOutletContext<number>();
+  const [isEditing, setIsEditing] = useState(false);
+  const { workout, utcDate } =
+    useLoaderData<typeof loader>();
+  const date = new Date(utcDate ?? '');
   const epochDate = date.getTime();
   const formattedNotes =
-    workout?.notes.split("\n").map((note) => ({ note, id: uuid() })) ?? [];
-  console.log({ workout, formattedNotes });
+    workout?.notes.split('\n').map((note) => ({
+      note,
+      id: uuid(),
+    })) ?? [];
+  useEffect(() => {
+    setIsEditing(!workout);
+  }, [workout]);
   return (
-    <section className="flex h-full flex-col p-4">
-      <header className="flex w-full justify-evenly pb-4 capitalize">
-        <h1>
-          {months[date.getMonth()]} {date.getDate()}, {date.getFullYear()}
+    <section className='flex h-full flex-col p-4'>
+      <header className='flex w-full justify-between pb-4 capitalize'>
+        <h1 className='text-xl font-bold'>
+          {months[date.getMonth()]} {date.getDate()},{' '}
+          {date.getFullYear()}
         </h1>
+        {workout && (
+          <Form method='DELETE'>
+            <input
+              name='epoch_date'
+              type='hidden'
+              value={epochDate}
+            />
+            <input
+              name='user_id'
+              type='hidden'
+              value={userId}
+            />
+            <button
+              type='submit'
+              className='rounded border-none bg-blue-200 px-7 py-2 uppercase text-orange-700'
+            >
+              delete
+            </button>
+          </Form>
+        )}
       </header>
-      {!workout && (
-        <Form method="POST" className="flex flex-col items-center">
-          <input name="epoch_date" type="hidden" value={epochDate} />
-          <div className="flex w-full flex-col pb-4">
-            <label htmlFor="title" className="pb-1">
+      {isEditing && (
+        <Form
+          method={!workout ? 'POST' : 'PUT'}
+          className='flex flex-col items-center'
+        >
+          <input
+            name='epoch_date'
+            type='hidden'
+            value={epochDate}
+          />
+          <input
+            name='user_id'
+            type='hidden'
+            value={userId}
+          />
+          <div className='flex w-full flex-col pb-4'>
+            <label htmlFor='title' className='pb-1'>
               Title
             </label>
             <input
-              id="title"
-              name="title"
-              type="text"
-              className="w-full rounded border border-blue-700 bg-blue-100 p-2"
+              id='title'
+              name='title'
+              type='text'
+              className='w-full rounded border border-blue-700 bg-blue-100 p-2'
+              defaultValue={workout?.title}
             />
           </div>
-          <div className="flex w-full flex-col pb-4">
-            <label htmlFor="notes" className="pb-1">
+          <div className='flex w-full flex-col pb-4'>
+            <label htmlFor='notes' className='pb-1'>
               Notes
             </label>
             <textarea
-              id="notes"
-              name="notes"
+              id='notes'
+              name='notes'
               rows={8}
-              className="w-full rounded border border-blue-700 bg-blue-100 p-2"
+              className='w-full rounded border border-blue-700 bg-blue-100 p-2'
+              defaultValue={workout?.notes}
             ></textarea>
           </div>
-          <button
-            type="submit"
-            className="rounded border border-blue-700 bg-orange-600 p-2 text-white"
-          >
-            Get Some
-          </button>
+          <div className='flex w-full justify-evenly'>
+            {workout && (
+              <button className='rounded border border-blue-700 bg-orange-100 p-2'>
+                Cancel
+              </button>
+            )}
+            <button
+              type='submit'
+              className='rounded border border-blue-700 bg-orange-600 p-2 text-white'
+            >
+              {!workout ? 'Get Some' : 'Update'}
+            </button>
+          </div>
         </Form>
       )}
-      {workout && (
-        <div className="flex h-full flex-col">
-          <h2 className="pb-1 font-bold capitalize">{workout.title}</h2>
-          <div className="h-full w-full rounded border border-blue-700 bg-orange-100 p-2">
-            {formattedNotes.map(({ note, id }) => (
-              <p key={id}>{note ? note : <span>&nbsp;</span>}</p>
-            ))}
-          </div>
+      {!isEditing && workout && (
+        <div className='flex h-full flex-col'>
+          <button
+            className='grow pb-1 capitalize'
+            onClick={() => setIsEditing(true)}
+          >
+            <h2 className='text-start text-lg'>
+              {workout.title}
+            </h2>
+          </button>
+          <button
+            className='h-full w-full rounded border border-blue-700 bg-orange-100 p-2'
+            onClick={() => setIsEditing(true)}
+          >
+            <div className='h-full w-full text-start'>
+              {formattedNotes.map(({ note, id }) => (
+                <p key={id}>
+                  {note ? note : <span>&nbsp;</span>}
+                </p>
+              ))}
+            </div>
+          </button>
         </div>
       )}
     </section>
   );
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+const sqlers: Record<string, string> = {
+  POST: 'INSERT INTO workouts (epoch_date,title,notes,user_id) VALUES ($epochDate,$title,$notes,$userId);',
+  PUT: 'UPDATE workouts SET title = $title, notes = $notes WHERE epoch_date = $epochDate AND user_id = $userId',
+  DELETE:
+    'DELETE FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
+};
+
+export async function action({
+  request,
+}: ActionFunctionArgs) {
   const formData = await request.formData();
-  const epochDate = z.coerce.number().parse(formData.get("epoch_date"));
-  const title = z.string().parse(formData.get("title"));
-  const notes = z.string().parse(formData.get("notes"));
+  const userId = z.coerce
+    .number()
+    .parse(formData.get('user_id'));
+  const epochDate = z.coerce
+    .number()
+    .parse(formData.get('epoch_date'));
+  const title = z
+    .union([z.string(), z.null()])
+    .parse(formData.get('title'));
+  const notes = z
+    .union([z.string(), z.null()])
+    .parse(formData.get('notes'));
+  const sql = sqlers[request.method];
+  if (!sql) {
+    return json({
+      ok: false,
+      error: 'cal.$date action: unhandled method',
+    });
+  }
   const result = await db.execute({
-    sql: "insert into workouts (epoch_date,title,notes) values ($epochDate,$title,$notes);",
+    sql,
     args: {
+      userId,
       epochDate,
-      title,
-      notes,
+      title: title ?? '',
+      notes: notes ?? '',
     },
   });
   return json({
