@@ -86,23 +86,13 @@ export async function checkPassword(
 export async function checkSession(
   request: Request,
 ): Promise<User['id'] | undefined> {
-  try {
-    const cookieHeader = request.headers.get('Cookie');
-    const remixSession = await getSession(cookieHeader);
-    const sessionId = remixSession.get('id');
-    const {
-      rows: [sessionRow],
-    } = await db.execute({
-      sql: 'SELECT user_id FROM sessions WHERE id = ? LIMIT 1',
-      args: [sessionId],
-    });
-    const session = sessionSchema
-      .pick({ user_id: true })
-      .parse(sessionRow);
-    return session.user_id;
-  } catch (err) {
+  const cookieHeader = request.headers.get('Cookie');
+  const remixSession = await getSession(cookieHeader);
+  const userId = remixSession.get('user_id');
+  if (!userId) {
     return;
   }
+  return userId;
 }
 
 export async function createSession(userId: User['id']) {
