@@ -1,10 +1,10 @@
-import { Form, FormProps } from '@remix-run/react'
+import { Form, FormProps } from '@remix-run/react';
 
 type UserFormProps = {
-  type: 'login' | 'register'
-  onInputsChange: (value: string) => void
+  type: 'login' | 'register';
+  onInputsChange: (value: string) => void;
 } & FormProps &
-  React.RefAttributes<HTMLFormElement>
+  React.RefAttributes<HTMLFormElement>;
 
 export function UserForm({
   type,
@@ -14,7 +14,7 @@ export function UserForm({
   function onChange(
     e: React.ChangeEvent<HTMLInputElement>,
   ) {
-    onInputsChange(e.target.value)
+    onInputsChange(e.target.value);
   }
   return (
     <Form {...formProps}>
@@ -64,5 +64,5 @@ export function UserForm({
         {type === 'register' && 'sign up'}
       </button>
     </Form>
-  )
+  );
 }

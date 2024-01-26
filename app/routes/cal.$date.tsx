@@ -4,20 +4,20 @@ import {
   redirect,
   type LoaderFunctionArgs,
   type MetaFunction,
-} from '@remix-run/node'
+} from '@remix-run/node';
 import {
   Form,
   useLoaderData,
   useOutletContext,
-} from '@remix-run/react'
-import { db } from '~/db.server'
-import { z } from 'zod'
-import { Workout, workoutSchema } from '~/types'
-import { months, routes } from '~/constants/shared'
-import { isDateValid } from '~/utils'
-import { v4 as uuid } from 'uuid'
-import { useEffect, useState } from 'react'
-import { checkSession } from '~/auth.server'
+} from '@remix-run/react';
+import { db } from '~/db.server';
+import { z } from 'zod';
+import { Workout, workoutSchema } from '~/types';
+import { months, routes } from '~/constants/shared';
+import { isDateValid } from '~/utils';
+import { v4 as uuid } from 'uuid';
+import { useEffect, useState } from 'react';
+import { checkSession } from '~/auth.server';
 
 export const meta: MetaFunction = () => {
   return [
@@ -26,54 +26,54 @@ export const meta: MetaFunction = () => {
       name: 'description',
       content: 'Get it, Brother',
     },
-  ]
-}
+  ];
+};
 
 export async function loader({
   params,
   request,
 }: LoaderFunctionArgs) {
-  const userId = await checkSession(request)
+  const userId = await checkSession(request);
   if (!userId) {
-    return redirect(routes.login)
+    return redirect(routes.login);
   }
-  const { date } = params
-  const parsedDate = z.string().parse(date)
-  const epochDate = new Date(parsedDate).getTime()
+  const { date } = params;
+  const parsedDate = z.string().parse(date);
+  const epochDate = new Date(parsedDate).getTime();
   const { rows } = await db.execute({
     sql: 'SELECT * FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
     args: { epochDate, userId },
-  })
-  const workoutRow = rows[0]
-  let workout: Workout | undefined
+  });
+  const workoutRow = rows[0];
+  let workout: Workout | undefined;
   if (workoutRow) {
-    workout = workoutSchema.parse(workoutRow)
+    workout = workoutSchema.parse(workoutRow);
   }
-  let utcDate: string | undefined
+  let utcDate: string | undefined;
   if (date && isDateValid(date)) {
-    utcDate = date
+    utcDate = date;
   }
   return json({
     workout,
     utcDate,
-  })
+  });
 }
 
 export default function DateRoute() {
-  const userId = useOutletContext<number>()
-  const [isEditing, setIsEditing] = useState(false)
+  const userId = useOutletContext<number>();
+  const [isEditing, setIsEditing] = useState(false);
   const { workout, utcDate } =
-    useLoaderData<typeof loader>()
-  const date = new Date(utcDate ?? '')
-  const epochDate = date.getTime()
+    useLoaderData<typeof loader>();
+  const date = new Date(utcDate ?? '');
+  const epochDate = date.getTime();
   const formattedNotes =
     workout?.notes.split('\n').map((note) => ({
       note,
       id: uuid(),
-    })) ?? []
+    })) ?? [];
   useEffect(() => {
-    setIsEditing(!workout)
-  }, [workout])
+    setIsEditing(!workout);
+  }, [workout]);
   return (
     <section className='flex h-full flex-col p-4'>
       <header className='flex w-full justify-between pb-4 capitalize'>
@@ -181,7 +181,7 @@ export default function DateRoute() {
         </div>
       )}
     </section>
-  )
+  );
 }
 
 const sqlers: Record<string, string> = {
@@ -189,30 +189,30 @@ const sqlers: Record<string, string> = {
   PUT: 'UPDATE workouts SET title = $title, notes = $notes WHERE epoch_date = $epochDate AND user_id = $userId',
   DELETE:
     'DELETE FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
-}
+};
 
 export async function action({
   request,
 }: ActionFunctionArgs) {
-  const formData = await request.formData()
+  const formData = await request.formData();
   const userId = z.coerce
     .number()
-    .parse(formData.get('user_id'))
+    .parse(formData.get('user_id'));
   const epochDate = z.coerce
     .number()
-    .parse(formData.get('epoch_date'))
+    .parse(formData.get('epoch_date'));
   const title = z
     .union([z.string(), z.null()])
-    .parse(formData.get('title'))
+    .parse(formData.get('title'));
   const notes = z
     .union([z.string(), z.null()])
-    .parse(formData.get('notes'))
-  const sql = sqlers[request.method]
+    .parse(formData.get('notes'));
+  const sql = sqlers[request.method];
   if (!sql) {
     return json({
       ok: false,
       error: 'cal.$date action: unhandled method',
-    })
+    });
   }
   const result = await db.execute({
     sql,
@@ -222,9 +222,9 @@ export async function action({
       title: title ?? '',
       notes: notes ?? '',
     },
-  })
+  });
   return json({
     result,
     ok: true,
-  })
+  });
 }

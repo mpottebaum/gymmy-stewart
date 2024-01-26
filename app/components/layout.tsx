@@ -1,9 +1,9 @@
-import { Form } from '@remix-run/react'
-import { type ReactNode } from 'react'
+import { Form } from '@remix-run/react';
+import { type ReactNode } from 'react';
 
 interface LayoutProps {
-  children: ReactNode
-  userId?: number
+  children: ReactNode;
+  userId?: number;
 }
 
 export function Layout({ children, userId }: LayoutProps) {
@@ -22,5 +22,5 @@ export function Layout({ children, userId }: LayoutProps) {
         {children}
       </section>
     </main>
-  )
+  );
 }

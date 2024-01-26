@@ -11,7 +11,7 @@ export const months = [
   'october',
   'november',
   'december',
-]
+];
 
 export const weekDays = [
   { name: 'sunday', abbrev: 's' },
@@ -21,11 +21,11 @@ export const weekDays = [
   { name: 'thursday', abbrev: 't' },
   { name: 'friday', abbrev: 'f' },
   { name: 'saturday', abbrev: 's' },
-]
+];
 
 export const routes = {
   home: '/cal',
   cal: '/cal',
   login: '/login',
   register: '/register',
-}
+};

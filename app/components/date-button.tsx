@@ -1,9 +1,9 @@
 type DateButtonProps = {
-  date: number
+  date: number;
 } & React.DetailedHTMLProps<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   HTMLButtonElement
->
+>;
 
 export function DateButton({
   date,
@@ -15,5 +15,5 @@ export function DateButton({
         {date}
       </button>
     </div>
-  )
+  );
 }

@@ -3,25 +3,25 @@ import {
   redirect,
   type LoaderFunctionArgs,
   type MetaFunction,
-} from '@remix-run/node'
+} from '@remix-run/node';
 import {
   Outlet,
   useLoaderData,
   useNavigate,
   useParams,
   useSearchParams,
-} from '@remix-run/react'
-import { z } from 'zod'
-import { checkSession } from '~/auth.server'
-import { DateButton, Layout } from '~/components'
-import { months, weekDays } from '~/constants/shared'
-import { db } from '~/db.server'
-import { workoutSchema } from '~/types'
+} from '@remix-run/react';
+import { z } from 'zod';
+import { checkSession } from '~/auth.server';
+import { DateButton, Layout } from '~/components';
+import { months, weekDays } from '~/constants/shared';
+import { db } from '~/db.server';
+import { workoutSchema } from '~/types';
 import {
   buildCalendarDates,
   buildUTCDate,
   getMonthDateBounds,
-} from '~/utils'
+} from '~/utils';
 
 export const meta: MetaFunction = () => {
   return [
@@ -30,26 +30,26 @@ export const meta: MetaFunction = () => {
       name: 'description',
       content: 'Get it, Brother',
     },
-  ]
-}
+  ];
+};
 
 export async function loader({
   request,
 }: LoaderFunctionArgs) {
-  const userId = await checkSession(request)
+  const userId = await checkSession(request);
   if (!userId) {
-    return redirect('/login')
+    return redirect('/login');
   }
-  const searchParams = new URLSearchParams(request.url)
-  const urlMonth = searchParams.get('month')
-  const urlYear = searchParams.get('year')
+  const searchParams = new URLSearchParams(request.url);
+  const urlMonth = searchParams.get('month');
+  const urlYear = searchParams.get('year');
   const currentMonthDate =
     urlMonth && urlYear
       ? new Date(+urlYear, +urlMonth)
-      : new Date()
+      : new Date();
   const { firstDate, lastDate } = getMonthDateBounds(
     currentMonthDate,
-  )
+  );
   const { rows } = await db.execute({
     sql: 'SELECT id,epoch_date FROM workouts WHERE epoch_date >= $first AND epoch_date <= $last AND user_id = $userId',
     args: {
@@ -57,7 +57,7 @@ export async function loader({
       last: lastDate.getTime(),
       userId,
     },
-  })
+  });
   const workouts = z
     .array(
       workoutSchema.pick({
@@ -65,54 +65,54 @@ export async function loader({
         epoch_date: true,
       }),
     )
-    .parse(rows)
+    .parse(rows);
   return json({
     userId,
     workouts: workouts.map((workout) => {
-      const date = new Date(workout.epoch_date)
+      const date = new Date(workout.epoch_date);
       return {
         ...workout,
         year: date.getFullYear(),
         month: date.getMonth(),
         date: date.getDate(),
-      }
+      };
     }),
-  })
+  });
 }
 
 export default function Index() {
-  const { date: selectedUtcDate } = useParams()
+  const { date: selectedUtcDate } = useParams();
   const selectedDate =
-    !!selectedUtcDate && new Date(selectedUtcDate)
+    !!selectedUtcDate && new Date(selectedUtcDate);
   const { workouts, userId } =
-    useLoaderData<typeof loader>()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const urlMonth = searchParams.get('month')
-  const urlYear = searchParams.get('year')
+    useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlMonth = searchParams.get('month');
+  const urlYear = searchParams.get('year');
   const today =
     urlMonth && urlYear
       ? new Date(+urlYear, +urlMonth)
-      : new Date()
-  const month = today.getMonth()
-  const year = today.getFullYear()
+      : new Date();
+  const month = today.getMonth();
+  const year = today.getFullYear();
   const dates = buildCalendarDates(today).map((date) => {
     const workout = workouts.find(
       (w) =>
         w.year === year &&
         w.month === month &&
         w.date === date.date,
-    )
+    );
     return {
       ...date,
       workout,
-    }
-  })
+    };
+  });
 
   function onDateClick(date: number) {
     navigate(
       `/cal/${buildUTCDate(year, month, date)}?${searchParams}`,
-    )
+    );
   }
   return (
     <Layout userId={userId}>
@@ -134,7 +134,7 @@ export default function Index() {
           {dates.map(({ date, id, workout }) => {
             const isSelected =
               selectedDate &&
-              selectedDate.getDate() === date
+              selectedDate.getDate() === date;
             return (
               <div key={id} className='w-full'>
                 {isSelected && workout && date && (
@@ -168,7 +168,7 @@ export default function Index() {
                   />
                 )}
               </div>
-            )
+            );
           })}
         </article>
         <Outlet context={userId} />
@@ -177,20 +177,20 @@ export default function Index() {
         <button
           className='rounded border-none bg-blue-200 px-7 py-2 text-orange-700'
           onClick={() => {
-            const newMonth = month - 1
+            const newMonth = month - 1;
             const newMonthParam =
-              newMonth < 0 ? 11 : newMonth
+              newMonth < 0 ? 11 : newMonth;
             searchParams.set(
               'month',
               newMonthParam.toString(),
-            )
+            );
             const newYearParam =
-              newMonth < 0 ? year - 1 : year
+              newMonth < 0 ? year - 1 : year;
             searchParams.set(
               'year',
               newYearParam.toString(),
-            )
-            navigate(`/cal?${searchParams}`)
+            );
+            navigate(`/cal?${searchParams}`);
           }}
         >
           &#60;
@@ -204,25 +204,25 @@ export default function Index() {
         <button
           className='rounded border-none bg-blue-200 px-7 py-2 text-orange-700'
           onClick={() => {
-            const newMonth = month + 1
+            const newMonth = month + 1;
             const newMonthParam =
-              newMonth > 11 ? 0 : newMonth
+              newMonth > 11 ? 0 : newMonth;
             searchParams.set(
               'month',
               newMonthParam.toString(),
-            )
+            );
             const newYearParam =
-              newMonth > 11 ? year + 1 : year
+              newMonth > 11 ? year + 1 : year;
             searchParams.set(
               'year',
               newYearParam.toString(),
-            )
-            navigate(`/cal?${searchParams}`)
+            );
+            navigate(`/cal?${searchParams}`);
           }}
         >
           &#62;
         </button>
       </nav>
     </Layout>
-  )
+  );
 }

@@ -2,41 +2,45 @@ import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   redirect,
-} from '@remix-run/node'
-import { Link, json, useActionData } from '@remix-run/react'
-import { useEffect, useState } from 'react'
-import { z } from 'zod'
+} from '@remix-run/node';
+import {
+  Link,
+  json,
+  useActionData,
+} from '@remix-run/react';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import {
   checkPassword,
   checkSession,
   createSession,
-} from '~/auth.server'
-import { Layout } from '~/components'
-import { UserForm } from '~/components/user-form'
-import { routes } from '~/constants/shared'
-import { db } from '~/db.server'
-import { userSchema } from '~/types'
+} from '~/auth.server';
+import { Layout } from '~/components';
+import { UserForm } from '~/components/user-form';
+import { routes } from '~/constants/shared';
+import { db } from '~/db.server';
+import { userSchema } from '~/types';
 
 export async function loader({
   request,
 }: LoaderFunctionArgs) {
-  const userId = await checkSession(request)
+  const userId = await checkSession(request);
   if (userId) {
-    return redirect('/')
+    return redirect('/');
   }
-  return json({})
+  return json({});
 }
 
 export default function Login() {
   const [loginError, setLoginError] = useState<
     string | undefined
-  >()
-  const actionData = useActionData<typeof action>()
+  >();
+  const actionData = useActionData<typeof action>();
   useEffect(() => {
     if (actionData && !actionData.ok) {
-      setLoginError(actionData.error)
+      setLoginError(actionData.error);
     }
-  }, [actionData])
+  }, [actionData]);
   return (
     <Layout>
       <section className='p-2'>
@@ -60,20 +64,20 @@ export default function Login() {
       </section>
       {loginError && <section>{loginError}</section>}
     </Layout>
-  )
+  );
 }
 
 export async function action({
   request,
 }: ActionFunctionArgs) {
   if (request.method === 'POST') {
-    const formData = await request.formData()
+    const formData = await request.formData();
     const username = z
       .string()
-      .parse(formData.get('username'))
+      .parse(formData.get('username'));
     const password = z
       .string()
-      .parse(formData.get('password'))
+      .parse(formData.get('password'));
     const {
       rows: [userRow],
     } = await db.execute({
@@ -81,32 +85,32 @@ export async function action({
       args: {
         username,
       },
-    })
+    });
     if (!userRow) {
       return json({
         ok: false,
         error: 'username or password incorrect',
-      })
+      });
     }
-    const user = userSchema.parse(userRow)
+    const user = userSchema.parse(userRow);
     const isPasswordCorrect = await checkPassword(
       password,
       user.password_hash,
-    )
+    );
     if (!isPasswordCorrect) {
       return json({
         ok: false,
         error: 'username or password incorrect',
-      })
+      });
     }
     return redirect('/', {
       headers: {
         'Set-Cookie': await createSession(user.id),
       },
-    })
+    });
   }
   return json({
     ok: false,
     error: 'login: unhandled action',
-  })
+  });
 }

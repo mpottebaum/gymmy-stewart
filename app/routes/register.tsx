@@ -3,41 +3,41 @@ import {
   LoaderFunctionArgs,
   json,
   redirect,
-} from '@remix-run/node'
-import { z } from 'zod'
-import { UserForm } from '~/components/user-form'
-import { db } from '~/db.server'
-import { userSchema } from '~/types'
+} from '@remix-run/node';
+import { z } from 'zod';
+import { UserForm } from '~/components/user-form';
+import { db } from '~/db.server';
+import { userSchema } from '~/types';
 import {
   checkSession,
   createPasswordHash,
   createSession,
-} from '~/auth.server'
-import { useEffect, useState } from 'react'
-import { Link, useActionData } from '@remix-run/react'
-import { routes } from '~/constants/shared'
-import { Layout } from '~/components'
+} from '~/auth.server';
+import { useEffect, useState } from 'react';
+import { Link, useActionData } from '@remix-run/react';
+import { routes } from '~/constants/shared';
+import { Layout } from '~/components';
 
 export async function loader({
   request,
 }: LoaderFunctionArgs) {
-  const userId = await checkSession(request)
+  const userId = await checkSession(request);
   if (userId) {
-    return redirect('/')
+    return redirect('/');
   }
-  return json({})
+  return json({});
 }
 
 export default function Register() {
   const [loginError, setLoginError] = useState<
     string | undefined
-  >()
-  const actionData = useActionData<typeof action>()
+  >();
+  const actionData = useActionData<typeof action>();
   useEffect(() => {
     if (actionData && !actionData.ok) {
-      setLoginError(actionData.error)
+      setLoginError(actionData.error);
     }
-  }, [actionData])
+  }, [actionData]);
   return (
     <Layout>
       <section className='p-2'>
@@ -61,53 +61,53 @@ export default function Register() {
       </section>
       {loginError && <section>{loginError}</section>}
     </Layout>
-  )
+  );
 }
 
 export async function action({
   request,
 }: ActionFunctionArgs) {
   if (request.method === 'POST') {
-    const formData = await request.formData()
+    const formData = await request.formData();
     const username = z
       .string()
-      .parse(formData.get('username'))
+      .parse(formData.get('username'));
     const password = z
       .string()
-      .parse(formData.get('password'))
+      .parse(formData.get('password'));
     const confirmPassword = z
       .string()
-      .parse(formData.get('confirmPassword'))
+      .parse(formData.get('confirmPassword'));
     if (password !== confirmPassword) {
       return json({
         ok: false,
         error: 'passwords need to match dude',
-      })
+      });
     }
-    const passwordHash = await createPasswordHash(password)
+    const passwordHash = await createPasswordHash(password);
     await db.execute({
       sql: 'INSERT INTO users (username, password_hash) VALUES ($username, $passwordHash)',
       args: {
         username,
         passwordHash,
       },
-    })
+    });
     const {
       rows: [userRow],
     } = await db.execute(
       'SELECT id FROM users ORDER BY id DESC LIMIT 1',
-    )
+    );
     const user = userSchema
       .pick({ id: true })
-      .parse(userRow)
+      .parse(userRow);
     return redirect('/', {
       headers: {
         'Set-Cookie': await createSession(user.id),
       },
-    })
+    });
   }
   return json({
     ok: false,
     error: '/register unhandled method',
-  })
+  });
 }
