@@ -96,7 +96,7 @@ export async function checkSession(
 }
 
 export async function createSession(userId: User['id']) {
-  const newSession = await getSession(null);
+  const newSession = await getSession(undefined);
   newSession.set('userId', userId);
   return await commitSession(newSession);
 }
