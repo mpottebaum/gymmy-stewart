@@ -51,10 +51,11 @@ export async function loader({
     currentMonthDate,
   )
   const { rows } = await db.execute({
-    sql: 'SELECT id,epoch_date FROM workouts WHERE epoch_date >= $first AND epoch_date <= $last',
+    sql: 'SELECT id,epoch_date FROM workouts WHERE epoch_date >= $first AND epoch_date <= $last AND user_id = $userId',
     args: {
       first: firstDate.getTime(),
       last: lastDate.getTime(),
+      userId,
     },
   })
   const workouts = z
@@ -170,7 +171,7 @@ export default function Index() {
             )
           })}
         </article>
-        <Outlet />
+        <Outlet context={userId} />
       </section>
       <nav className='flex justify-between bg-orange-600 p-4'>
         <button

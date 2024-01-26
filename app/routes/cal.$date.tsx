@@ -1,17 +1,23 @@
 import {
   ActionFunctionArgs,
   json,
+  redirect,
   type LoaderFunctionArgs,
   type MetaFunction,
 } from '@remix-run/node'
-import { Form, useLoaderData } from '@remix-run/react'
+import {
+  Form,
+  useLoaderData,
+  useOutletContext,
+} from '@remix-run/react'
 import { db } from '~/db.server'
 import { z } from 'zod'
 import { Workout, workoutSchema } from '~/types'
-import { months } from '~/constants/shared'
+import { months, routes } from '~/constants/shared'
 import { isDateValid } from '~/utils'
 import { v4 as uuid } from 'uuid'
 import { useEffect, useState } from 'react'
+import { checkSession } from '~/auth.server'
 
 export const meta: MetaFunction = () => {
   return [
@@ -25,13 +31,18 @@ export const meta: MetaFunction = () => {
 
 export async function loader({
   params,
+  request,
 }: LoaderFunctionArgs) {
+  const userId = await checkSession(request)
+  if (!userId) {
+    return redirect(routes.login)
+  }
   const { date } = params
   const parsedDate = z.string().parse(date)
   const epochDate = new Date(parsedDate).getTime()
   const { rows } = await db.execute({
-    sql: 'SELECT * FROM workouts WHERE epoch_date = ?',
-    args: [epochDate],
+    sql: 'SELECT * FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
+    args: { epochDate, userId },
   })
   const workoutRow = rows[0]
   let workout: Workout | undefined
@@ -49,6 +60,7 @@ export async function loader({
 }
 
 export default function DateRoute() {
+  const userId = useOutletContext<number>()
   const [isEditing, setIsEditing] = useState(false)
   const { workout, utcDate } =
     useLoaderData<typeof loader>()
@@ -76,6 +88,11 @@ export default function DateRoute() {
               type='hidden'
               value={epochDate}
             />
+            <input
+              name='user_id'
+              type='hidden'
+              value={userId}
+            />
             <button
               type='submit'
               className='rounded border-none bg-blue-200 px-7 py-2 uppercase text-orange-700'
@@ -94,6 +111,11 @@ export default function DateRoute() {
             name='epoch_date'
             type='hidden'
             value={epochDate}
+          />
+          <input
+            name='user_id'
+            type='hidden'
+            value={userId}
           />
           <div className='flex w-full flex-col pb-4'>
             <label htmlFor='title' className='pb-1'>
@@ -163,16 +185,19 @@ export default function DateRoute() {
 }
 
 const sqlers: Record<string, string> = {
-  POST: 'INSERT INTO workouts (epoch_date,title,notes) VALUES ($epochDate,$title,$notes);',
-  PUT: 'UPDATE workouts SET title = $title, notes = $notes WHERE epoch_date = $epochDate',
+  POST: 'INSERT INTO workouts (epoch_date,title,notes,user_id) VALUES ($epochDate,$title,$notes,$userId);',
+  PUT: 'UPDATE workouts SET title = $title, notes = $notes WHERE epoch_date = $epochDate AND user_id = $userId',
   DELETE:
-    'DELETE FROM workouts WHERE epoch_date = $epochDate',
+    'DELETE FROM workouts WHERE epoch_date = $epochDate AND user_id = $userId',
 }
 
 export async function action({
   request,
 }: ActionFunctionArgs) {
   const formData = await request.formData()
+  const userId = z.coerce
+    .number()
+    .parse(formData.get('user_id'))
   const epochDate = z.coerce
     .number()
     .parse(formData.get('epoch_date'))
@@ -192,6 +217,7 @@ export async function action({
   const result = await db.execute({
     sql,
     args: {
+      userId,
       epochDate,
       title: title ?? '',
       notes: notes ?? '',

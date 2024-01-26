@@ -1,11 +1,12 @@
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
-import { createCookie } from '@remix-run/node'
-import { Session, User, sessionSchema } from './types'
+import {
+  createCookie,
+  createSessionStorage,
+} from '@remix-run/node'
+import { User, sessionSchema } from './types'
 import { db } from './db.server'
 
 const PW_SALT = 10
-const JWT_SECRET = process.env.JWT_SECRET
 const SESSION_COOKIE_SECRET =
   process.env.SESSION_COOKIE_SECRET
 
@@ -19,6 +20,51 @@ export const sessionCookie = createCookie('session', {
     ? [SESSION_COOKIE_SECRET]
     : [],
 })
+
+export const { getSession, commitSession, destroySession } =
+  createSessionStorage({
+    cookie: sessionCookie,
+    async createData(data) {
+      await db.execute({
+        sql: 'INSERT INTO sessions (user_id) VALUES ($userId)',
+        args: {
+          userId: data.userId,
+        },
+      })
+      const {
+        rows: [sessionRow],
+      } = await db.execute(
+        'SELECT * FROM sessions ORDER BY id DESC LIMIT 1',
+      )
+      const session = sessionSchema.parse(sessionRow)
+      return session.id.toString()
+    },
+    async readData(id) {
+      const {
+        rows: [sessionRow],
+      } = await db.execute({
+        sql: 'SELECT * FROM sessions WHERE id = ? LIMIT 1',
+        args: [id],
+      })
+      const session = sessionSchema.parse(sessionRow)
+      return session
+    },
+    async updateData(id, data) {
+      await db.execute({
+        sql: 'UPDATE sessions SET user_id = $userId WHERE id = $id',
+        args: {
+          id,
+          userId: data.user_id,
+        },
+      })
+    },
+    async deleteData(id) {
+      await db.execute({
+        sql: 'DELETE FROM sessions WHERE id = ?',
+        args: [id],
+      })
+    },
+  })
 
 export async function createPasswordHash(password: string) {
   if (!PW_SALT) {
@@ -37,36 +83,18 @@ export async function checkPassword(
   return await bcrypt.compare(password, hash)
 }
 
-export async function serializeSessionCookie(
-  session: Session,
-) {
-  if (!JWT_SECRET) {
-    throw Error('no secret brother man')
-  }
-  const token = jwt.sign(session, JWT_SECRET)
-  return await sessionCookie.serialize(token)
-}
-
-export async function destroySessionCookie() {
-  return await sessionCookie.serialize('')
-}
-
 export async function checkSession(
   request: Request,
 ): Promise<User['id'] | undefined> {
-  if (!JWT_SECRET) {
-    throw Error('no secret brother man')
-  }
   try {
     const cookieHeader = request.headers.get('Cookie')
-    const token = await sessionCookie.parse(cookieHeader)
-    const tokenSession = jwt.verify(token, JWT_SECRET)
-    const { id } = sessionSchema.parse(tokenSession)
+    const remixSession = await getSession(cookieHeader)
+    const sessionId = remixSession.get('id')
     const {
       rows: [sessionRow],
     } = await db.execute({
       sql: 'SELECT user_id FROM sessions WHERE id = ? LIMIT 1',
-      args: [id],
+      args: [sessionId],
     })
     const session = sessionSchema
       .pick({ user_id: true })
@@ -78,37 +106,7 @@ export async function checkSession(
 }
 
 export async function createSession(userId: User['id']) {
-  await db.execute({
-    sql: 'INSERT INTO sessions (user_id) VALUES ($userId)',
-    args: {
-      userId: userId,
-    },
-  })
-  const {
-    rows: [sessionRow],
-  } = await db.execute(
-    'SELECT * FROM sessions ORDER BY id DESC LIMIT 1',
-  )
-  return sessionSchema.parse(sessionRow)
-}
-
-export async function destroySession(
-  request: Request,
-): Promise<boolean> {
-  if (!JWT_SECRET) {
-    throw Error('no secret brother man')
-  }
-  try {
-    const cookieHeader = request.headers.get('Cookie')
-    const token = await sessionCookie.parse(cookieHeader)
-    const tokenSession = jwt.decode(token)
-    const { id } = sessionSchema.parse(tokenSession)
-    await db.execute({
-      sql: 'DELETE FROM sessions WHERE id = ?',
-      args: [id],
-    })
-    return true
-  } catch (err) {
-    return false
-  }
+  const newSession = await getSession(null)
+  newSession.set('userId', userId)
+  return await commitSession(newSession)
 }

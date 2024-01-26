@@ -10,7 +10,6 @@ import {
   checkPassword,
   checkSession,
   createSession,
-  serializeSessionCookie,
 } from '~/auth.server'
 import { Layout } from '~/components'
 import { UserForm } from '~/components/user-form'
@@ -100,10 +99,9 @@ export async function action({
         error: 'username or password incorrect',
       })
     }
-    const session = await createSession(user.id)
     return redirect('/', {
       headers: {
-        'Set-Cookie': await serializeSessionCookie(session),
+        'Set-Cookie': await createSession(user.id),
       },
     })
   }

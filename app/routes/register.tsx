@@ -12,7 +12,6 @@ import {
   checkSession,
   createPasswordHash,
   createSession,
-  serializeSessionCookie,
 } from '~/auth.server'
 import { useEffect, useState } from 'react'
 import { Link, useActionData } from '@remix-run/react'
@@ -101,10 +100,9 @@ export async function action({
     const user = userSchema
       .pick({ id: true })
       .parse(userRow)
-    const session = await createSession(user.id)
     return redirect('/', {
       headers: {
-        'Set-Cookie': await serializeSessionCookie(session),
+        'Set-Cookie': await createSession(user.id),
       },
     })
   }
