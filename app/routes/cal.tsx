@@ -14,7 +14,11 @@ import {
 import { z } from 'zod';
 import { checkSession } from '~/auth.server';
 import { DateButton, Layout } from '~/components';
-import { months, weekDays } from '~/constants/shared';
+import {
+  months,
+  weekDays,
+  AppSearchParams,
+} from '~/constants/shared';
 import { db } from '~/db.server';
 import { workoutSchema } from '~/types';
 import {
@@ -41,8 +45,8 @@ export async function loader({
     return redirect('/login');
   }
   const searchParams = new URLSearchParams(request.url);
-  const urlMonth = searchParams.get('month');
-  const urlYear = searchParams.get('year');
+  const urlMonth = searchParams.get(AppSearchParams.Month);
+  const urlYear = searchParams.get(AppSearchParams.Year);
   const currentMonthDate =
     urlMonth && urlYear
       ? new Date(+urlYear, +urlMonth)
@@ -80,6 +84,26 @@ export async function loader({
   });
 }
 
+interface Stuff {
+  urlMonth?: string;
+  urlYear?: string;
+  selectedDate?: Date;
+}
+
+function whatIsToday({
+  selectedDate,
+  urlMonth,
+  urlYear,
+}: Stuff) {
+  if (selectedDate) {
+    return selectedDate;
+  }
+  if (urlMonth && urlYear) {
+    return new Date(+urlYear, +urlMonth);
+  }
+  return new Date();
+}
+
 export default function Index() {
   const { date: selectedUtcDate } = useParams();
   const selectedDate =
@@ -88,12 +112,15 @@ export default function Index() {
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const urlMonth = searchParams.get('month');
-  const urlYear = searchParams.get('year');
-  const today =
-    urlMonth && urlYear
-      ? new Date(+urlYear, +urlMonth)
-      : new Date();
+  const urlMonth =
+    searchParams.get(AppSearchParams.Month) ?? undefined;
+  const urlYear =
+    searchParams.get(AppSearchParams.Year) ?? undefined;
+  const today = whatIsToday({
+    selectedDate: selectedDate ? selectedDate : undefined,
+    urlMonth,
+    urlYear,
+  });
   const month = today.getMonth();
   const year = today.getFullYear();
   const dates = buildCalendarDates(today).map((date) => {
@@ -110,6 +137,8 @@ export default function Index() {
   });
 
   function onDateClick(date: number) {
+    searchParams.delete(AppSearchParams.Month);
+    searchParams.delete(AppSearchParams.Year);
     navigate(
       `/cal/${buildUTCDate(year, month, date)}?${searchParams}`,
     );
@@ -181,13 +210,13 @@ export default function Index() {
             const newMonthParam =
               newMonth < 0 ? 11 : newMonth;
             searchParams.set(
-              'month',
+              AppSearchParams.Month,
               newMonthParam.toString(),
             );
             const newYearParam =
               newMonth < 0 ? year - 1 : year;
             searchParams.set(
-              'year',
+              AppSearchParams.Year,
               newYearParam.toString(),
             );
             navigate(`/cal?${searchParams}`);
@@ -208,13 +237,13 @@ export default function Index() {
             const newMonthParam =
               newMonth > 11 ? 0 : newMonth;
             searchParams.set(
-              'month',
+              AppSearchParams.Month,
               newMonthParam.toString(),
             );
             const newYearParam =
               newMonth > 11 ? year + 1 : year;
             searchParams.set(
-              'year',
+              AppSearchParams.Year,
               newYearParam.toString(),
             );
             navigate(`/cal?${searchParams}`);
