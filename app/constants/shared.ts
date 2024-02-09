@@ -29,3 +29,8 @@ export const routes = {
   login: '/login',
   register: '/register',
 };
+
+export enum AppSearchParams {
+  Month = 'month',
+  Year = 'year',
+}
