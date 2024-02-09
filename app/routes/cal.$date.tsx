@@ -159,7 +159,7 @@ export default function DateRoute() {
       {!isEditing && workout && (
         <div className='flex h-full flex-col'>
           <button
-            className='grow pb-1 capitalize'
+            className='pb-1 capitalize'
             onClick={() => setIsEditing(true)}
           >
             <h2 className='text-start text-lg'>
@@ -167,7 +167,7 @@ export default function DateRoute() {
             </h2>
           </button>
           <button
-            className='h-full w-full rounded border border-blue-700 bg-orange-100 p-2'
+            className='h-full max-h-64 w-full grow overflow-y-auto rounded border border-blue-700 bg-orange-100 p-2'
             onClick={() => setIsEditing(true)}
           >
             <div className='h-full w-full text-start'>
